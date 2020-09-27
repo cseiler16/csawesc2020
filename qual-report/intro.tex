@@ -1,32 +1,27 @@
-To begin our analysis of the given \texttt{qualification.out} object, we start by running the GNU \texttt{file} command on it.
+To begin our analysis of the given \texttt{qual-esc2020.elf} object, we start by running the GNU \texttt{file} command on it.
 \begin{lstlisting}[numbers=left,language=none]
-qualification.out: ELF 64-bit LSB executable, x86-64, ... , not stripped
+    qual-esc2020.elf: ELF 32-bit LSB executable, UCB RISC-V, version 1 (SYSV), statically linked, not stripped
 \end{lstlisting}
-Immediately we know that this is an x86-64 ELF binary executable, which is unstripped, meaning functions should have names.
+Immediately we know that this is a 32-Bit RISC-V ELF binary executable, which is not stripped, meaning functions should have names.
 Next running \texttt{strings} on the binary (``...'' means snipped text) we see:
 \begin{lstlisting}[numbers=left,language=none]
 ...
-Great Job! The flag is what you entered
-The flag is <<shhimhiding>>
-;*3$"
-GCC: (Ubuntu 4.8.4-2ubuntu1~14.04.4) 4.8.4
+Correct, you solved Challenge 1!
+Correct, you solved Challenge 2!
 ...
-qualification.cpp
+Correct, you solved Challenge 3!
+Enter challenge number (1-3 or 4 to quit):
+Enter exactly %d characters:
 ...
-_Z14secretFunctionv
-...
-_Z17challengeFunctionPc
 \end{lstlisting}
-From the strings, we see a ``good flag'' message, an actual flag, that this binary was written as C++, and two C++ mangled functions.
+From the strings, we see an option to select 1-3 for a challenge, indicating there may be 3 challenges that we should look into.
 
-With initial static analysis out of the way, we can set the file as executable and do some dynamic analysis.
+With this initial analysis out of the way, we can try executing the binary to conduct some dynamic analysis. We made use of the helpful hints provided in the ESC 2020 repository to be able to do this.
 
 \begin{lstlisting}[language=none]
 $ chmod +x qualification.out
-$ ./qualification.out
-$ ./qualification.out test
-$ ./qualification.out shhimhiding
+$ qemu-system-riscv32 -nographic -machine sifive_e -kernel qual-esc2020.elf
 \end{lstlisting}
 
-Running the binary with and without arguments (even the flag found via strings) yields no ``goodboy'' message. To investigate further, we start GHIDRA 9.0 to begin our analysis.
-We create a new GHIDRA project and load the binary into it. We open the CodeBrowser tool and perform auto-analysis.
+Running the binary greets us with the prompt we saw when we ran the strings command. Each challenge produced the prompt requesting for a specific amount of characters. There was not much else we could do other than bruteforce input so we had to investigate further by using GHIDRA 9.0.
+We first added the riscv ghidra processor module, provided by the ESC repo, in our copy of Ghidra. We then started the program, created a new GHIDRA project and loaded the binary into it. We open the CodeBrowser tool and started with the auto-analysis.
