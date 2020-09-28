@@ -1,4 +1,6 @@
-There are three challenges therefore we shall go through this binary one challenge at a time. The first step we took was to look at the main function. The main frunction in this binary siomply printed out the menu asking for the number of the challenge the user wanted to try out. Once a number is selected the main function calls \texttt{challenge\char`_x} where "x" is the number input. Ghidra outputs the following for \texttt{challenge\char`_1}.
+There are three challenges to be solved in the qualification binary. To do so, we implemented a variety of static and dynamic analysis reverse engineering techniques. For static analysis, we primarily utilized Ghidra for its disassembly and decompilation features. The RISC-V processor module provided to us by the challenge organizers assisted this process. We supplemented our analysis with command-line tools like strings. Dynamic analysis was conducted entirely using QEMU's RISC-V emulation to run the binary. 
+
+For the first challenge, we first examined the main function. The main function in this binary simply printed out the menu asking for the number of the challenge the user wanted to try out. Once a number is selected, the main function calls \texttt{challenge\char`_x} where "x" is the number input. Ghidra outputs the following for \texttt{challenge\char`_1}.
 
 \begin{lstlisting}
 undefined4 challenge_1(char *param_1)
@@ -36,7 +38,7 @@ undefined4 challenge_1(char *param_1)
 }
 \end{lstlisting}
 
-The first thing we noticed about this challenge is that it pushed several bytes onto the stack. Decoding these as ascii text revealed a secret phrase "ESC-2020". The function then has a simple check to ensure that the first three characters of the input is "CSE". After that, it loops over the remaining 8 character of the input. Each character has the value (i-3) added to it, where i is the loop index, then it is compared to a value stored on the stack, with an offset of (i+3). Checking the stack, we can see that the values it is compared against are the secret phrase. Thus it is a simple task of subtracting (i-3) from each character in the phrase to arrive at the correct input, using the following python code:
+The first thing we noticed about this challenge is that it pushed several bytes onto the stack. Decoding these as ASCII text revealed a secret phrase: "ESC-2020". The function then has a simple check to ensure that the first three characters of the input is "CSE". After that, it loops over the remaining 8 character of the input. Each character has the value (i-3) added to it, where i is the loop index, then it is compared to a value stored on the stack, with an offset of (i+3). Checking the stack, we can see that the values it is compared against are the secret phrase. Thus it is a simple task of subtracting (i-3) from each character in the phrase to arrive at the correct input, using the following python code:
 
 \begin{lstlisting}
 password = ESC-2020
@@ -48,7 +50,7 @@ for char in password:
 
 Combining the output of the above code with "CSE" gives the input \texttt{CSEERA*.+,)}.
 
-Challenge 2 prints the following.
+The Challenge 2 decompilation from Ghidra is as follows:
 
 \begin{lstlisting}
 undefined4 challenge_2(int param_1)
@@ -78,7 +80,9 @@ undefined4 challenge_2(int param_1)
 }
 \end{lstlisting}
 
-It is clear that there is a simple xor of each char in 'ezpzlemonsqueezy' with 0x2a. This produces \texttt{OPZPFOGEDY[\char`_OOPS} which is the valid resulting key.
+From the decompilation, it can be seen that the function contains a for loop that iterates over 16 characters of a byte array residing at 65 7a 70 7a, 6c 65 6d 6f, and 6e 73 71 75 in memory (RISC-V is little-endian, so the hex addresses in the decompilation must be "reordered"). This byte array corresponds to the ASCII phrase 'ezpzlemonsqueezy'. Each character in the byte array is then xor-ed with 0x2a and compared with the current character in the input we passed in to the function. If all characters are equal, we get the solve message.
+
+To retrieve the flag, we do a simple xor of each char in 'ezpzlemonsqueezy' with 0x2a. This produces \texttt{OPZPFOGEDY[\char`_OOPS} which is the valid resulting key.
 
 Challenge 3 seemed similar to the previous 2, with a for loop iterating over each character of the input, altering it, then comparing it to a set value. However, we found that the comparison phrase was first sent to another function arx(). This function took as inputs the secret phrase and the length of the input. It then went through several rounds of transformations detailed below.
 
@@ -125,7 +129,7 @@ undefined4 challenge_3(int param_1)
 }
 \end{lstlisting}
 
-After these transformations, the input is compared, in reverse error to the phrase returned by arx(). To solve the challenge, we simply wrote a program that ran all of the steps, then reversed the output to get the correct input: I0E\char`;3.<2<3G<33C\char`#
+After these transformations, the input is compared, in reverse order, to the phrase returned by arx(). To solve the challenge, we simply wrote a program that ran all of the steps, then reversed the output to get the correct input: I0E\char`;3.<2<3G<33C\char`#
 
 \begin{lstlisting}
 #include "stdio.h"
@@ -156,3 +160,5 @@ for(int out = 0xf; out >= 0; out--){
 printf("\n");
 }
 \end{lstlisting}
+
+Overall, our reverse engineering techniques were successful in solving these three challenges. However, for solving more complex RISC-V challenges, we will most likely not default to manual static analysis. We aim to leverage symbolic execution and symbolic analysis frameworks to assist us with solving more complex binaries. Angr, a python framework developed by UC Santa Barbara, is well-suited for such a task. Using angr's RISC-V lifter, we should be able to 
